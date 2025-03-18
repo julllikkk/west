@@ -52,6 +52,23 @@ class Dog extends Card {
 }
 
 
+class Trasher extends Dog {
+    constructor(name = "Громила", maxPower = 5, ...args) {
+        super(name, maxPower, ...args);
+    }
+
+    modifyTakenDamage(value, fromCard, gameContext, continuation) {
+        this.view.signalAbility(() => {
+            continuation(value - 1)
+        });
+    }
+
+    getDescriptions() {
+        return ['Получает на 1 меньше урона', super.getDescriptions()];
+    }
+}
+
+
 // Колода Шерифа, нижнего игрока.
 const seriffStartDeck = [
     new Duck(),
@@ -61,7 +78,7 @@ const seriffStartDeck = [
 
 // Колода Бандита, верхнего игрока.
 const banditStartDeck = [
-    new Dog(),
+    new Trasher(),
 ];
 
 
