@@ -146,6 +146,49 @@ class Rogue extends Creature {
     }
 }
 
+class Gatling extends Creature {
+    constructor(name = 'Гатлинг', power = 6, image) {
+        super(name, power, image);
+    }
+
+    attack(gameContext, continuation) {
+        const taskQueue = new TaskQueue();
+
+        const {currentPlayer, oppositePlayer, position, updateView} = gameContext;
+
+        for (let i = 0; i < oppositePlayer.table.length; i++) {
+            taskQueue.push(onDone => this.view.showAttack(onDone));
+            taskQueue.push(onDone => {
+                const oppositeCard = oppositePlayer.table[i];
+
+                if (oppositeCard) {
+                    this.dealDamageToCreature(2, oppositeCard, gameContext, onDone);
+                }
+            });
+        }
+
+        taskQueue.continueWith(continuation);
+    }
+}
+
+
+class Trasher extends Dog {
+    constructor(name = "Громила", maxPower = 5, ...args) {
+        super(name, maxPower, ...args);
+    }
+
+    modifyTakenDamage(value, fromCard, gameContext, continuation) {
+        this.view.signalAbility(() => {
+            continuation(value - 1)
+        });
+    }
+
+    getDescriptions() {
+        return ['Получает на 1 меньше урона', super.getDescriptions()];
+    }
+}
+
+
 class Brewer extends Duck {
     constructor(name = "Пивовар", maxPower = 2, image) {
         super(name, maxPower, image);
@@ -195,11 +238,14 @@ class PseudoDuck extends Dog {
 const seriffStartDeck = [
     new Duck(),
     new Brewer(),
+    new Rogue(),
+    new Gatling(),
 ];
 const banditStartDeck = [
     new Dog(),
     new PseudoDuck(),
-    new Dog(),
+    new Lad(),
+    new Trasher(),
 ];
 
 // Создание игры.
