@@ -112,17 +112,83 @@ class Lad extends Dog {
     }
 }
 
+class Rogue extends Creature {
+    constructor(name = "Изгой", maxPower = 2, image) {
+        super(name, maxPower, image);
+    }
+
+    stealAbilities(card, gameContext) {
+        const proto = Object.getPrototypeOf(card);
+        const abilities = ['modifyDealedDamageToCreature', 'modifyDealedDamageToPlayer', 'modifyTakenDamage'];
+
+        abilities.forEach(ability => {
+            if (proto.hasOwnProperty(ability)) {
+                this[ability] = proto[ability];
+                delete proto[ability];
+            }
+        });
+
+        gameContext.updateView();
+    }
+
+    doBeforeAttacking(gameContext, continuation) {
+        const cards = gameContext.players.flatMap(player => player.table);
+        const targetCard = gameContext.currentTarget;
+
+        if (targetCard) {
+            const targetType = Object.getPrototypeOf(targetCard);
+            cards.filter(card => Object.getPrototypeOf(card) === targetType).forEach(card => {
+                this.stealAbilities(card, gameContext);
+            });
+        }
+
+        continuation();
+    }
+}
+
+class Brewer extends Duck {
+    constructor(name = "Пивовар", maxPower = 2, image) {
+        super(name, maxPower, image);
+    }
+
+    attack(gameContext, continuation) {
+        const taskQueue = new TaskQueue();
+        const {currentPlayer, oppositePlayer, updateView} = gameContext;
+        const allCards = currentPlayer.table.concat(oppositePlayer.table);
+
+        taskQueue.push(onDone => this.view.showAttack(onDone));
+        taskQueue.push(onDone => {
+            allCards.forEach(card => {
+                if (card instanceof Duck) {
+                    card.maxPower += 1;
+                    card.currentPower = Math.min(card.currentPower + 2, card.maxPower);
+                    card.view.signalHeal();
+                    card.updateView();
+                }
+            });
+
+            this.maxPower += 1;
+            this.currentPower = Math.min(this.currentPower + 2, this.maxPower);
+            this.view.signalHeal();
+            this.updateView();
+            onDone();
+        });
+
+        taskQueue.continueWith(continuation);
+    }
+}
+
+
 // Колода Шерифа, нижнего игрока.
 const seriffStartDeck = [
     new Duck(),
-    new Duck(),
-    new Duck(),
+    new Brewer(),
 ];
-
-// Колода Бандита, верхнего игрока.
 const banditStartDeck = [
-    new Lad(),
-    new Lad(),
+    new Dog(),
+    new Dog(),
+    new Dog(),
+    new Dog(),
 ];
 
 // Создание игры.
