@@ -178,6 +178,18 @@ class Brewer extends Duck {
     }
 }
 
+class PseudoDuck extends Dog {
+    constructor(name = "Пвседоутка", maxPower = 3, ...args) {
+        super(name, maxPower, ...args);
+    }
+
+    quacks = function () {
+        console.log('quack')
+    };
+    swims = function () {
+        console.log('float: both;')
+    };
+}
 
 // Колода Шерифа, нижнего игрока.
 const seriffStartDeck = [
@@ -186,8 +198,7 @@ const seriffStartDeck = [
 ];
 const banditStartDeck = [
     new Dog(),
-    new Dog(),
-    new Dog(),
+    new PseudoDuck(),
     new Dog(),
 ];
 
