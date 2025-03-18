@@ -9,17 +9,16 @@ class Creature extends Card {
     }
 
     getDescriptions() {
-        return [getCreatureDescription(this), super.getDescriptions()]
+        return [getCreatureDescription(this), super.getDescriptions()];
     }
 }
 
-
-// Отвечает является ли карта уткой.
+// Отвечает, является ли карта уткой.
 function isDuck(card) {
     return card && card.quacks && card.swims;
 }
 
-// Отвечает является ли карта собакой.
+// Отвечает, является ли карта собакой.
 function isDog(card) {
     return card instanceof Dog;
 }
@@ -38,8 +37,6 @@ function getCreatureDescription(card) {
     return 'Существо';
 }
 
-
-
 // Основа для утки.
 class Duck extends Creature {
     constructor(name = 'Мирный житель', power = 2, image) {
@@ -47,13 +44,12 @@ class Duck extends Creature {
     }
 
     quacks = function () {
-        console.log('quack')
+        console.log('quack');
     };
     swims = function () {
-        console.log('float: both;')
+        console.log('float: both;');
     };
 }
-
 
 // Основа для собаки.
 class Dog extends Creature {
@@ -62,62 +58,72 @@ class Dog extends Creature {
     }
 }
 
+// Класс Lad (Браток)
+class Lad extends Dog {
+    static inGameCount = 0;
 
-class Gatling extends Creature {
-    constructor(name = 'Гатлинг', power = 6, image) {
-        super(name, power, image);
+    constructor(name = "Браток", maxPower = 2, image) {
+        super(name, maxPower, image);
     }
 
-    attack(gameContext, continuation) {
-        const taskQueue = new TaskQueue();
-
-        const {currentPlayer, oppositePlayer, position, updateView} = gameContext;
-
-        for (let i = 0; i < oppositePlayer.table.length; i++) {
-            taskQueue.push(onDone => this.view.showAttack(onDone));
-            taskQueue.push(onDone => {
-                const oppositeCard = oppositePlayer.table[i];
-
-                if (oppositeCard) {
-                    this.dealDamageToCreature(2, oppositeCard, gameContext, onDone);
-                }
-            });
-        }
-
-        taskQueue.continueWith(continuation);
+    static getInGameCount() {
+        return this.inGameCount || 0;
     }
-}
 
-class Trasher extends Dog {
-    constructor(name = "Громила", maxPower = 5, ...args) {
-        super(name, maxPower, ...args);
+    static setInGameCount(value) {
+        this.inGameCount = value;
+    }
+
+    static getBonus() {
+        const count = this.getInGameCount();
+        return count * (count + 1) / 2;
+    }
+
+    doAfterComingIntoPlay(gameContext, continuation) {
+        Lad.setInGameCount(Lad.getInGameCount() + 1);
+        continuation();
+    }
+
+    doBeforeRemoving(gameContext, continuation) {
+        Lad.setInGameCount(Lad.getInGameCount() - 1);
+        continuation();
+    }
+
+    modifyDealedDamageToCreature(value, toCard, gameContext, continuation) {
+        const bonus = Lad.getBonus();
+        this.view.signalAbility(() => {
+            continuation(value + bonus);
+        });
     }
 
     modifyTakenDamage(value, fromCard, gameContext, continuation) {
+        const bonus = Lad.getBonus();
         this.view.signalAbility(() => {
-            continuation(value - 1)
+            continuation(value - bonus);
         });
     }
 
     getDescriptions() {
-        return ['Получает на 1 меньше урона', super.getDescriptions()];
+        const descriptions = ['Чем их больше, тем они сильнее'];
+        if (Lad.prototype.hasOwnProperty('modifyDealedDamageToCreature') || Lad.prototype.hasOwnProperty('modifyTakenDamage')) {
+            descriptions.push(`Защита от урона: ${Lad.getBonus()}, Дополнительный урон: ${Lad.getBonus()}`);
+        }
+        return [...descriptions, ...super.getDescriptions()];
     }
 }
-
 
 // Колода Шерифа, нижнего игрока.
 const seriffStartDeck = [
     new Duck(),
     new Duck(),
     new Duck(),
-    new Gatling(),
-];
-const banditStartDeck = [
-    new Trasher(),
-    new Dog(),
-    new Dog(),
 ];
 
+// Колода Бандита, верхнего игрока.
+const banditStartDeck = [
+    new Lad(),
+    new Lad(),
+];
 
 // Создание игры.
 const game = new Game(seriffStartDeck, banditStartDeck);
